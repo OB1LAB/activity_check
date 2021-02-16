@@ -67,7 +67,7 @@ def fix_exit(logs_join, logs_exit):
     return logs_exit
 
 
-def check_activity(nick, user_dates, mute_list, ban_list, m_list):
+def check_activity(nick, user_dates):
     player = nick.lower()
     nick_write = player
     logs_join = []
@@ -83,6 +83,9 @@ def check_activity(nick, user_dates, mute_list, ban_list, m_list):
     ban = 0
     vanish = False
     check_coincidence = None
+    mute_list = ['/tempmute', '/mute']
+    ban_list = ['/tempban', '/ban']
+    m_list = ['/tell', '/m', '/w', '/msg', '/pm', '/t', '/r']
     for date in user_dates:
         file = 'logs/{0}.txt'.format(date)
         with open(file, 'r', encoding='utf-8') as logs_file:
@@ -161,26 +164,27 @@ def check_activity(nick, user_dates, mute_list, ban_list, m_list):
                          vanish_log_exit, user_dates)])
 
 
-def get_user_dates(date1, date2, d_view):
+def get_user_dates(date1, date2):
     user_dates = []
     try:
-        d1 = datetime.strptime(date1, d_view)
-        d2 = datetime.strptime(date2, d_view)
+        d1 = datetime.strptime(date1, '%d-%m-%Y')
+        d2 = datetime.strptime(date2, '%d-%m-%Y')
         for day in range((d2 - d1).days + 1):
-            user_dates.append((d1 + timedelta(days=day)).strftime(d_view))
+            user_dates.append((d1 + timedelta(days=day)).strftime('%d-%m-%Y'))
         if len(user_dates) == 0:
             for day in range((d1 - d2).days + 1):
-                user_dates.append((d2 + timedelta(days=day)).strftime(d_view))
+                user_dates.append(
+                    (d2 + timedelta(days=day)).strftime('%d-%m-%Y'))
         return user_dates
     except ValueError:
         print('OB1LAB' + ' Проверьте правильность ввода дат')
 
 
-def correct_date(date1, date2, d_view):
+def correct_date(date1, date2):
     date_check1 = re.findall(r'\d{2}-\d{2}-\d{4}', date1)
     date_check2 = re.findall(r'\d{2}-\d{2}-\d{4}', date2)
     if len(date_check1) > 0 and len(date_check2) > 0:
-        return get_user_dates(date1, date2, d_view)
+        return get_user_dates(date1, date2)
     else:
         print('OB1LAB' + 'Проверьте правильность ввода дат')
 
@@ -194,11 +198,11 @@ def log_file_download(url, date):
     log_file.close()
 
 
-def logs_downloader(url, logs_dir, dates, d_view):
+def logs_downloader(url, logs_dir, dates):
     if len(logs_dir) > 0:
-        dates_sort = [datetime.strptime(day, d_view) for day in logs_dir]
+        dates_sort = [datetime.strptime(day, '%d-%m-%Y') for day in logs_dir]
         dates_sort.sort()
-        local_logs = [datetime.strftime(d, d_view) for d in dates_sort]
+        local_logs = [datetime.strftime(d, '%d-%m-%Y') for d in dates_sort]
         local_logs.pop(-1)
     else:
         local_logs = []
@@ -224,47 +228,54 @@ def get_log_dates(url):
     return dates
 
 
-def check_local_logs(url, d_view):
+def check_local_logs(url, user_dates):
     dir_path = os.listdir()
     if 'logs' not in dir_path:
         os.mkdir('logs')
-
+    logs_in_dir = []
+    skipped_dates = []
+    logs_dir = os.listdir('logs')
+    for log_file in logs_dir:
+        logs_in_dir.append(log_file.split('.')[0])
     url = url_fix(url)
     access = requests.get(url).status_code
     if access == 200:
-        logs_in_dir = []
-        logs_dir = os.listdir('logs')
-        for log_file in logs_dir:
-            logs_in_dir.append(log_file.split('.')[0])
         dates = get_log_dates(url)
-        logs_downloader(url, logs_in_dir, dates, d_view)
+        for day in user_dates:
+            if day not in dates:
+                skipped_dates.append(day)
+        if len(skipped_dates) > 0:
+            print('Не найдены логи за:\n{0}'.format('\n'.join(skipped_dates)))
+            return False
+        logs_downloader(url, logs_in_dir, dates)
     else:
-        print('Не удается получить доступ, скачайте логи вручную в "logs"')
+        print('Не удается получить доступ, докачайте логи вручную в "logs"')
+        for date in user_dates:
+            if date not in logs_in_dir:
+                skipped_dates.append(date)
+        if len(skipped_dates) > 0:
+            print('Не найдены логи за:\n{0}'.format('\n'.join(skipped_dates)))
+            return False
+    return True
 
 
 def start():
     table = PrettyTable()
-    d_view = '%d-%m-%Y'
-    mute_list = ['/tempmute', '/mute']
-    ban_list = ['/tempban', '/ban']
-    m_list = ['/tell', '/m', '/w', '/msg', '/pm', '/t', '/r']
     table.field_names = ['Ник', '[L]', '[G]', 'ls', 'warn', 'mute', 'kick',
-                         'ban',
-                         'Онлайн', 'Онлайн в ванише', 'Онлайн без ваниша',
+                         'ban', 'Онлайн', 'Онлайн в ванише',
+                         'Онлайн без ваниша',
                          'Средний онлайн', 'Средний онлайн без ваниша']
-    players = ['Timberg', 'fire_plane', 'Vozmezdie',
-               'Sanyakhma', 'LoverTommy', 'AzazeIII']
+    players = ['Timberg', 'Sanyakhma', 'LoverTommy', 'AzazeIII']
     url = 'http://logs.s12.mcskill.ru/Hitechcraft2_public_logs/'
     date1 = '08-02-2021'
     date2 = '14-02-2021'
-    check_local_logs(url, d_view)
-    user_dates = correct_date(date1, date2, d_view)
-    for nick in players:
-        table.add_row(check_activity(nick, user_dates, mute_list,
-                                     ban_list, m_list))
-    output_logs_txt = open('Output.txt', 'w')
-    output_logs_txt.write(str(table))
-    output_logs_txt.close()
+    user_dates = correct_date(date1, date2)
+    if check_local_logs(url, user_dates):
+        for nick in players:
+            table.add_row(check_activity(nick, user_dates))
+        output_logs_txt = open('Output.txt', 'w')
+        output_logs_txt.write(str(table))
+        output_logs_txt.close()
 
 
 if __name__ == '__main__':
