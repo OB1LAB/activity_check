@@ -270,7 +270,7 @@ def start():
     date1 = '08-02-2021'
     date2 = '14-02-2021'
     user_dates = correct_date(date1, date2)
-    if check_local_logs(url, user_dates):
+    if user_dates and check_local_logs(url, user_dates):
         for nick in players:
             table.add_row(check_activity(nick, user_dates))
         output_logs_txt = open('Output.txt', 'w')
