@@ -1,0 +1,5 @@
+[1:00] player1 issued server command: /vanish
+[2:00] player1 issued server command: /vanish
+
+player1 issued server command: /vanish
+player1 Disconnected
