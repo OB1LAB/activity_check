@@ -1,6 +1,7 @@
 import os
 import re
 import requests
+from threading import Thread
 from prettytable import PrettyTable
 from datetime import datetime, timedelta
 
@@ -196,6 +197,7 @@ def log_file_download(url, date):
     log_file = open(file, 'w', encoding='utf-8')
     log_file.write(log_download)
     log_file.close()
+    print('Скачены логи за {0}'.format(date))
 
 
 def logs_downloader(url, logs_dir, dates):
@@ -206,10 +208,14 @@ def logs_downloader(url, logs_dir, dates):
         local_logs.pop(-1)
     else:
         local_logs = []
+    download_list = []
     for date in dates:
         if date not in local_logs:
-            print('Скачиваем логи за {0}'.format(date))
-            log_file_download(url, date)
+            download_list.append(Thread(target=log_file_download, args=(url,
+                                                                        date)))
+            download_list[len(download_list)-1].start()
+    for t in download_list:
+        t.join()
 
 
 def url_fix(url):
