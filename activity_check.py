@@ -156,9 +156,10 @@ def check_activity(nick, user_dates):
                     else:
                         vanish_log_exit.append(line_time)
                         vanish = False
-    logs_exit = fix_exit(logs_join, logs_exit)
-    if len(logs_join) > len(logs_exit):
-        logs_exit.append(logs_join[-1])
+    if len(logs_join) > 0 and len(logs_exit) > 0:
+        logs_exit = fix_exit(logs_join, logs_exit)
+        if len(logs_join) > len(logs_exit):
+            logs_exit.append(logs_join[-1])
     return ([nick_write, activity_local_chat, activity_global_chat,
              activity_private_message, warn, mute, kick, ban,
              *total_time(logs_join, logs_exit, vanish_log_join,
@@ -265,16 +266,12 @@ def check_local_logs(url, user_dates):
     return True
 
 
-def start():
+def start(players, url, date1, date2):
     table = PrettyTable()
     table.field_names = ['Ник', '[L]', '[G]', 'ls', 'warn', 'mute', 'kick',
                          'ban', 'Онлайн', 'Онлайн в ванише',
                          'Онлайн без ваниша',
                          'Средний онлайн', 'Средний онлайн без ваниша']
-    players = ['Timberg', 'Sanyakhma', 'LoverTommy', 'AzazeIII']
-    url = 'http://logs.s12.mcskill.ru/Hitechcraft2_public_logs/'
-    date1 = '08-02-2021'
-    date2 = '14-02-2021'
     user_dates = correct_date(date1, date2)
     if user_dates and check_local_logs(url, user_dates):
         for nick in players:
@@ -285,4 +282,8 @@ def start():
 
 
 if __name__ == '__main__':
-    start()
+    players = ['Timberg', 'Sanyakhma', 'LoverTommy', 'AzazeIII']
+    url = 'http://logs.s12.mcskill.ru/Hitechcraft2_public_logs/'
+    date1 = '08-02-2021'
+    date2 = '14-02-2021'
+    start(players, url, date1, date2)
